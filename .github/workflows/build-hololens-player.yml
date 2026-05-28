@@ -20,7 +20,6 @@ jobs:
         working-directory: player/SamplePlayer
         run: nuget restore SamplePlayer.sln
 
-      # Copia a pasta de includes do SDK 10.0.22621.0 para 10.0.26100.0
       - name: Fix Holographic Remoting include path
         run: |
           $base = "player\SamplePlayer\packages\Microsoft.Holographic.Remoting.2.9.3\build\native\include"
@@ -50,11 +49,14 @@ jobs:
             /p:WindowsTargetPlatformVersion=10.0.26100.0
         shell: pwsh
 
+      - name: List AppPackages content
+        run: |
+          Get-ChildItem -Recurse player/SamplePlayer/AppPackages | Select-Object FullName
+        shell: pwsh
+
       - name: Upload MSIX package
         uses: actions/upload-artifact@v4
         with:
           name: SamplePlayer-ARM64-Release
-          path: |
-            player/SamplePlayer/AppPackages/**/*.msixbundle
-            player/SamplePlayer/AppPackages/**/Dependencies/**/*.appx
+          path: player/SamplePlayer/AppPackages/**
           retention-days: 30
