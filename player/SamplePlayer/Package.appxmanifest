@@ -35,7 +35,6 @@
     <Capability Name="internetClient" />
     <Capability Name="internetClientServer" />
     <Capability Name="privateNetworkClientServer" />
-    <Capability Name="internetClientServer" />
     <uap2:Capability Name="spatialPerception" />
     <DeviceCapability Name="gazeInput" />
     <DeviceCapability Name="microphone" />
