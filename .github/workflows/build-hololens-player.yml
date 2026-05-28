@@ -1,22 +1,43 @@
-- name: Restore NuGet packages
-  working-directory: player/SamplePlayer    # ← subpasta correta
-  run: nuget restore SamplePlayer.sln
+name: Build HoloLens SamplePlayer
 
-- name: Build ARM64 Release
-  working-directory: player/SamplePlayer    # ← subpasta correta
-  run: |
-    msbuild SamplePlayer.sln `
-      /p:Configuration=Release `
-      /p:Platform=ARM64 `
-      /p:AppxBundle=Always `
-      /p:AppxBundlePlatforms=ARM64 `
-      /p:UapAppxPackageBuildMode=SideloadOnly `
-      /p:AppxPackageSigningEnabled=false `
-      /p:WindowsTargetPlatformVersion=10.0.26100.0
-  shell: pwsh
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
-- name: Upload MSIX package
-  uses: actions/upload-artifact@v4
-  with:
-    name: SamplePlayer-ARM64-Release
-    path: player/SamplePlayer/AppPackages/**/*.msixbundle
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        working-directory: player/SamplePlayer
+        run: nuget restore SamplePlayer.sln
+
+      - name: Build ARM64 Release
+        working-directory: player/SamplePlayer
+        run: |
+          msbuild SamplePlayer.sln `
+            /p:Configuration=Release `
+            /p:Platform=ARM64 `
+            /p:AppxBundle=Always `
+            /p:AppxBundlePlatforms=ARM64 `
+            /p:UapAppxPackageBuildMode=SideloadOnly `
+            /p:AppxPackageSigningEnabled=false `
+            /p:WindowsTargetPlatformVersion=10.0.26100.0
+        shell: pwsh
+
+      - name: Upload MSIX package
+        uses: actions/upload-artifact@v4
+        with:
+          name: SamplePlayer-ARM64-Release
+          path: |
+            player/AppPackages/**/*.msixbundle
+            player/AppPackages/**/Dependencies/**/*.appx
+          retention-days: 30
