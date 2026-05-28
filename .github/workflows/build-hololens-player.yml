@@ -17,11 +17,11 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Restore NuGet packages
-        working-directory: .
-        run: nuget restore /player/SamplePlayer.sln
+        working-directory: player        # ← aponta para a pasta player
+        run: nuget restore SamplePlayer.sln
 
       - name: Build ARM64 Release
-        working-directory: .
+        working-directory: player        # ← aponta para a pasta player
         run: |
           msbuild SamplePlayer.sln `
             /p:Configuration=Release `
@@ -36,6 +36,6 @@ jobs:
         with:
           name: SamplePlayer-ARM64-Release
           path: |
-            AppPackages/**/*.msixbundle
-            AppPackages/**/Dependencies/**/*.appx
+            player/AppPackages/**/*.msixbundle
+            player/AppPackages/**/Dependencies/**/*.appx
           retention-days: 30
