@@ -22,12 +22,12 @@ jobs:
 
       # 3. Restaura os pacotes NuGet (Microsoft.Holographic.AppRemoting etc.)
       - name: Restore NuGet packages
-        working-directory: player/SamplePlayer
+        working-directory: player
         run: nuget restore SamplePlayer.sln
 
       # 4. Compila em Release ARM64
       - name: Build ARM64 Release
-        working-directory: player/SamplePlayer
+        working-directory: player
         run: |
           msbuild SamplePlayer.sln `
             /p:Configuration=Release `
@@ -44,6 +44,6 @@ jobs:
           name: SamplePlayer-ARM64-Release
           # Caminho onde o MSBuild gera o pacote
           path: |
-            player/SamplePlayer/AppPackages/**/*.msixbundle
-            player/SamplePlayer/AppPackages/**/Dependencies/**/*.appx
+            player/AppPackages/**/*.msixbundle
+            player/AppPackages/**/Dependencies/**/*.appx
           retention-days: 30  # Fica disponível por 30 dias
