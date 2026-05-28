@@ -1,33 +1,27 @@
 name: Build HoloLens SamplePlayer
 
 on:
-  # Roda automaticamente a cada push na main
   push:
     branches: [ main ]
-  # Ou manualmente pelo GitHub Actions UI
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest  # Runner Windows com VS 2022 pré-instalado
+    runs-on: windows-latest
 
     steps:
-      # 1. Baixa o código do repositório
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Configura o MSBuild no PATH
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      # 3. Restaura os pacotes NuGet (Microsoft.Holographic.AppRemoting etc.)
       - name: Restore NuGet packages
-        working-directory: player
+        working-directory: .
         run: nuget restore SamplePlayer.sln
 
-      # 4. Compila em Release ARM64
       - name: Build ARM64 Release
-        working-directory: player
+        working-directory: .
         run: |
           msbuild SamplePlayer.sln `
             /p:Configuration=Release `
@@ -37,13 +31,11 @@ jobs:
             /p:UapAppxPackageBuildMode=SideloadOnly `
             /p:AppxPackageSigningEnabled=false
 
-      # 5. Publica o pacote gerado como artefato para download
       - name: Upload MSIX package
         uses: actions/upload-artifact@v4
         with:
           name: SamplePlayer-ARM64-Release
-          # Caminho onde o MSBuild gera o pacote
           path: |
-            player/AppPackages/**/*.msixbundle
-            player/AppPackages/**/Dependencies/**/*.appx
-          retention-days: 30  # Fica disponível por 30 dias
+            AppPackages/**/*.msixbundle
+            AppPackages/**/Dependencies/**/*.appx
+          retention-days: 30
