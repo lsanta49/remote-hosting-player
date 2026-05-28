@@ -18,7 +18,7 @@ jobs:
 
       - name: Restore NuGet packages
         working-directory: .
-        run: nuget restore SamplePlayer.sln
+        run: nuget restore /player/SamplePlayer.sln
 
       - name: Build ARM64 Release
         working-directory: .
