@@ -26,14 +26,54 @@ jobs:
           $src  = "$base\10.0.22621.0"
           $dst  = "$base\10.0.26100.0"
           if (Test-Path $src) {
-            Write-Host "Copiando includes de 10.0.22621.0 para 10.0.26100.0..."
+            Write-Host "Copiando includes..."
             Copy-Item -Path $src -Destination $dst -Recurse -Force
             Write-Host "Concluído."
           } else {
-            Write-Host "ERRO: pasta de origem não encontrada: $src"
+            Write-Host "ERRO: pasta não encontrada: $src"
             Get-ChildItem $base
             exit 1
           }
+        shell: pwsh
+
+      - name: Create self-signed certificate
+        run: |
+          $manifest = "player\SamplePlayer\Package.appxmanifest"
+          [xml]$xml = Get-Content $manifest
+          $publisher = $xml.Package.Identity.Publisher
+          Write-Host "Publisher: $publisher"
+
+          $cert = New-SelfSignedCertificate `
+            -Type Custom `
+            -Subject $publisher `
+            -KeyUsage DigitalSignature `
+            -FriendlyName "SamplePlayer Dev Cert" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+
+          $pfxPath = "$env:GITHUB_WORKSPACE\player\SamplePlayer\DevCert.pfx"
+          $cerPath = "$env:GITHUB_WORKSPACE\player\SamplePlayer\DevCert.cer"
+          
+          Export-PfxCertificate `
+            -Cert $cert `
+            -FilePath $pfxPath `
+            -Password (ConvertTo-SecureString -String "DevPass123!" -Force -AsPlainText)
+          
+          Export-Certificate -Cert $cert -FilePath $cerPath
+
+          # Verifica se os arquivos foram criados
+          Write-Host "=== Verificando arquivos ==="
+          if (Test-Path $pfxPath) { Write-Host "✅ DevCert.pfx criado: $pfxPath" }
+          else { Write-Host "❌ DevCert.pfx NÃO encontrado!" }
+          
+          if (Test-Path $cerPath) { Write-Host "✅ DevCert.cer criado: $cerPath" }
+          else { Write-Host "❌ DevCert.cer NÃO encontrado!" }
+
+          Write-Host "Thumbprint: $($cert.Thumbprint)"
+
+          echo "CERT_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
+          echo "CERT_PFX_PATH=$pfxPath" >> $env:GITHUB_ENV
+          echo "CERT_CER_PATH=$cerPath" >> $env:GITHUB_ENV
         shell: pwsh
 
       - name: Build ARM64 Release
@@ -45,18 +85,32 @@ jobs:
             /p:AppxBundle=Always `
             /p:AppxBundlePlatforms=ARM64 `
             /p:UapAppxPackageBuildMode=SideloadOnly `
-            /p:AppxPackageSigningEnabled=false `
+            /p:AppxPackageSigningEnabled=true `
+            /p:PackageCertificateKeyFile="$env:CERT_PFX_PATH" `
+            /p:PackageCertificatePassword="DevPass123!" `
+            /p:PackageCertificateThumbprint="$env:CERT_THUMBPRINT" `
             /p:WindowsTargetPlatformVersion=10.0.26100.0
         shell: pwsh
 
-      - name: List AppPackages content
+      - name: Verificar arquivos gerados
         run: |
-          Get-ChildItem -Recurse player/SamplePlayer/AppPackages | Select-Object FullName
+          Write-Host "=== AppPackages ==="
+          Get-ChildItem -Recurse player/SamplePlayer/AppPackages -File | ForEach-Object { Write-Host $_.FullName }
+          
+          Write-Host ""
+          Write-Host "=== Certificados ==="
+          if (Test-Path "$env:CERT_CER_PATH") { Write-Host "✅ DevCert.cer existe" }
+          else { Write-Host "❌ DevCert.cer não encontrado em: $env:CERT_CER_PATH" }
+          
+          if (Test-Path "$env:CERT_PFX_PATH") { Write-Host "✅ DevCert.pfx existe" }
+          else { Write-Host "❌ DevCert.pfx não encontrado em: $env:CERT_PFX_PATH" }
         shell: pwsh
 
-      - name: Upload MSIX package
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: SamplePlayer-ARM64-Release
-          path: player/SamplePlayer/AppPackages/**
+          path: |
+            player/SamplePlayer/AppPackages/**
+            player/SamplePlayer/DevCert.cer
           retention-days: 30
